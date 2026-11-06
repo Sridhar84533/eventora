@@ -46,11 +46,3 @@ npm run dev            # runs on http://localhost:5173
 ```
 
 ---
-
-## Default Login Credentials
-
-| Role      | Email                   | Password |
-|-----------|-------------------------|----------|
-| Admin     | admin@eventora.com      | admin123 |
-| Organizer | organizer@eventora.com  | org123   |
-| User      | user@eventora.com       | user123  |
