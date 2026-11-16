@@ -47,12 +47,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     const res = await api.post('/auth/register', userData);
-    if (res.data.success) {
-      setToken(res.data.token);
-      setUser(res.data.user);
-      localStorage.setItem('eventora_token', res.data.token);
-      localStorage.setItem('eventora_user', JSON.stringify(res.data.user));
-    }
+    // Registration does NOT log the user in — no token/session is stored here.
+    // The user must navigate to Login and authenticate manually.
     return res.data;
   };
 

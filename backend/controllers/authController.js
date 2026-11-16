@@ -70,25 +70,11 @@ exports.register = async (req, res) => {
 
     await connection.commit();
 
-    // Generate JWT
-    const token = jwt.sign(
-      { user_id, email, role },
-      process.env.JWT_SECRET || 'eventora_jwt_secret_key_2026_super_secure',
-      { expiresIn: '7d' }
-    );
-
+    // Do NOT generate a JWT token here — registration is not a login.
+    // The user must log in manually after registration.
     res.status(201).json({
       success: true,
-      message: 'Registration successful!',
-      token,
-      user: {
-        user_id,
-        full_name,
-        email,
-        phone,
-        role,
-        organizer_id
-      }
+      message: 'Registration successful! Your account has been created successfully. Please log in using your registered email and password.'
     });
   } catch (error) {
     await connection.rollback();
