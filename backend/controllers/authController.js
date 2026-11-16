@@ -122,7 +122,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, role: user.role, organizer_id },
       process.env.JWT_SECRET || 'eventora_jwt_secret_key_2026_super_secure',
-      { expiresIn: '7d' }
+      { expiresIn: '6h' }  // 6-hour server-side cap; frontend enforces 5-min inactivity
     );
 
     res.json({

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -22,7 +22,8 @@ import {
   VisibilityOff,
   Person,
   CorporateFare,
-  SupervisorAccount
+  SupervisorAccount,
+  AccessTime
 } from '@mui/icons-material';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -30,7 +31,12 @@ import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
+
+  // Detect session timeout redirect
+  const params = new URLSearchParams(location.search);
+  const sessionExpired = params.get('reason') === 'timeout';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,6 +107,17 @@ const Login = () => {
               Sign in to manage your tickets, events, or dashboard.
             </Typography>
           </Box>
+
+          {/* Session timeout notice */}
+          {sessionExpired && (
+            <Alert
+              severity="warning"
+              icon={<AccessTime fontSize="inherit" />}
+              sx={{ mb: 3, borderRadius: 2, fontWeight: 500 }}
+            >
+              Your session has expired due to inactivity. Please log in again.
+            </Alert>
+          )}
 
           {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
 
