@@ -77,7 +77,10 @@ const BookingModal = ({ open, onClose, event, onSuccess }) => {
         // to avoid parent re-render blinking the modal
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to complete booking. Please try again.');
+      const serverMsg = err.response?.data?.message;
+      const serverErr = err.response?.data?.error;
+      setError(serverMsg || 'Failed to complete booking. Please try again.');
+      if (serverErr) console.error('Booking server error detail:', serverErr);
     } finally {
       setLoading(false);
     }

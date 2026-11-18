@@ -14,6 +14,10 @@ exports.createBooking = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid event ID and ticket count are required.' });
     }
 
+    // Validate payment_method is an accepted ENUM value
+    const validPaymentMethods = ['credit_card', 'debit_card', 'upi', 'net_banking', 'wallet'];
+    const safePaymentMethod = validPaymentMethods.includes(payment_method) ? payment_method : 'credit_card';
+
     // Check event status and available seats (FOR UPDATE to prevent race conditions)
     const [events] = await connection.query(
       'SELECT event_id, event_name, ticket_price, available_seats, event_status FROM events WHERE event_id = ? FOR UPDATE',
@@ -29,7 +33,7 @@ exports.createBooking = async (req, res) => {
 
     if (event.event_status !== 'published') {
       await connection.rollback();
-      return res.status(400).json({ success: false, message: 'Tickets cannot be booked for unpublished events.' });
+      return res.status(400).json({ success: false, message: 'This event is not currently available for booking.' });
     }
 
     if (event.available_seats < number_of_tickets) {
@@ -41,7 +45,9 @@ exports.createBooking = async (req, res) => {
     }
 
     const total_amount = parseFloat((event.ticket_price * number_of_tickets).toFixed(2));
-    const booking_reference = 'EVT-' + Date.now().toString().slice(-6) + Math.floor(100 + Math.random() * 900);
+
+    // Generate a collision-resistant booking reference
+    const booking_reference = 'EVT-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
 
     // 1. Insert Booking Record
     const [bookingResult] = await connection.query(
@@ -60,25 +66,27 @@ exports.createBooking = async (req, res) => {
     );
 
     // 3. Create Payment Record
-    const transaction_id = 'TXN-' + Date.now() + Math.floor(100 + Math.random() * 900);
+    const transaction_id = 'TXN-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000);
     await connection.query(
       `INSERT INTO payments 
        (booking_id, transaction_id, amount, payment_method, payment_status) 
        VALUES (?, ?, ?, ?, 'completed')`,
-      [booking_id, transaction_id, total_amount, payment_method]
+      [booking_id, transaction_id, total_amount, safePaymentMethod]
     );
 
-    // 4. Create Notification
-    await connection.query(
-      `INSERT INTO notifications 
-       (user_id, title, message, notification_type) 
-       VALUES (?, ?, ?, 'booking')`,
-      [
-        user_id,
-        'Booking Confirmed!',
-        `Your booking for "${event.event_name}" (${number_of_tickets} ticket(s)) has been confirmed. Ref: ${booking_reference}`
-      ]
-    );
+    // 4. Create Notification (non-critical – do not fail the booking if this errors)
+    try {
+      const notifMessage = `Your booking for "${event.event_name}" (${number_of_tickets} ticket(s)) has been confirmed. Ref: ${booking_reference}`;
+      await connection.query(
+        `INSERT INTO notifications 
+         (user_id, title, message, notification_type) 
+         VALUES (?, 'Booking Confirmed!', ?, 'booking')`,
+        [user_id, notifMessage]
+      );
+    } catch (notifErr) {
+      // Notification failure should not block the booking
+      console.warn('Notification insert warning (non-critical):', notifErr.message);
+    }
 
     await connection.commit();
 
